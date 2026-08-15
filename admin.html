@@ -15,9 +15,9 @@
 <div class="box"><h2>📦 Ürünler</h2><div id="products" class="products"></div></div></div>
 </div>
 <script type="module">
-// Supabase proje bilgilerini buraya bir kez ekle.
-const SUPABASE_URL='BURAYA_SUPABASE_URL';
-const SUPABASE_ANON_KEY='BURAYA_SUPABASE_ANON_KEY';
+// Supabase proje bilgileri
+const SUPABASE_URL='https://estbotwgzcadafmwanse.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_xwZ3W4zrMNOvn8wvcZmSpg_rjGVql1J';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const ready=!SUPABASE_URL.startsWith('BURAYA_')&&!SUPABASE_ANON_KEY.startsWith('BURAYA_');
 const sb=ready?createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
