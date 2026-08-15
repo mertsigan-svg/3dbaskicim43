@@ -14,20 +14,20 @@
 <section class="section"><h2 class="title">Neden 3DBASKİCİM43?</h2><p class="sub">Kişiye özel tasarım, farklı renk seçenekleri ve özenli 3D baskı.</p><div class="stats"><div class="stat"><b>75 TL+</b>Tekli ürünler</div><div class="stat"><b>40 adet</b>Toplu paket</div><div class="stat"><b>📍 Kütahya</b>Merkez</div></div></section>
 <section class="section" id="urunler"><h2 class="title">Kütahya 3D Baskı Ürünleri</h2><p class="sub">Admin panelinden eklediğin ürünler burada otomatik görünür.</p><span class="location">📍 Kütahya Merkez, Türkiye</span><div class="grid" id="products"><div class="loading">Ürünler yükleniyor...</div></div></section>
 <section class="section" id="toplu"><div class="bulk"><img class="bulkImg" src="772465754_1464252225531399_5582792343547675858_n.jpg" alt="40 adet toplu anahtarlık"><div class="bulkBox"><h2 class="title">Toplu Anahtarlık Paketi</h2><p class="sub">40 adetlik hazır toplu anahtarlık paketi.</p><div class="bulkTags"><span>10 Dişsiz</span><span>10 Pikachu</span><span>10 Star Wars</span><span>10 Beyaz Ejderha</span></div><div class="bulkTotal">40 adet · 1.200 TL</div><a class="order" href="https://www.instagram.com/3dbaskicim43/" target="_blank">Toplu Sipariş Ver</a></div></div></section>
-<section class="section" id="nasil"><h2 class="title">Nasıl Sipariş Verilir?</h2><div class="steps"><div class="step"><div class="num">01</div><h3>Ürünü seç</h3><p class="sub">Beğendiğin ürünü seç.</p></div><div class="step"><div class="num">02</div><h3>Instagram'dan yaz</h3><p class="sub">Renk, isim, plaka veya diğer detayları gönder.</p></div><div class="step"><div class="num">03</div><h3>Baskıya geçelim</h3><p class="sub">Onaydan sonra ürününü hazırlayalım.</p></div></div></section>
+<section class="section" id="nasil"><h2 class="title">Nasıl Sipariş Verilir?</h2><div class="steps"><div class="step"><div class="num">01</div><h3>Ürünü seç</h3><p class="sub">Beğendiğin ürünü seç.</p></div><div class="step"><div class="num">02</div><h3>Instagram'dan yaz</h3><p class="sub">Renk, isim, plaka veya diğer detayları gönder.</p></div><div class="step"><div class="step"><div class="num">03</div><h3>Baskıya geçelim</h3><p class="sub">Onaydan sonra ürününü hazırlayalım.</p></div></div></div></section>
 <section class="section" id="iletisim"><div class="contact"><h2 class="title">Sipariş / İletişim</h2><p class="sub">Ürününü seç ve Instagram'dan bize ulaş.</p><a class="ig" href="https://www.instagram.com/3dbaskicim43/" target="_blank">📸 @3dbaskicim43</a></div></section>
 </main><footer>© 2026 3DBASKİCİM43 · Kütahya Merkez · Kişiye Özel 3D Baskı</footer>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const SUPABASE_URL='https://estbotwgzcadafmwanse.supabase.co';
-const SUPABASE_KEY='sb_publishable_xwZ3W4zrMNOvn8wvcZmSpg_rjGVql1J';
-const sb=createClient(SUPABASE_URL,SUPABASE_KEY);
+const sb=createClient('https://estbotwgzcadafmwanse.supabase.co','sb_publishable_xwZ3W4zrMNOvn8wvcZmSpg_rjGVql1J');
 const box=document.getElementById('products');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 async function loadProducts(){
-  const {data,error}=await sb.from('products').select('id,name,price,description,image_url,created_at').order('created_at',{ascending:false});
-  if(error){box.innerHTML='<div class="loading">Ürünler şu anda yüklenemiyor.</div>';console.error(error);return;}
-  if(!data?.length){box.innerHTML='<div class="loading">Henüz ürün eklenmemiş.</div>';return;}
+  box.innerHTML='<div class="loading">Ürünler yükleniyor...</div>';
+  const {data,error}=await sb.from('products').select('*').order('created_at',{ascending:false});
+  console.log('Supabase products:',data,'error:',error);
+  if(error){box.innerHTML='<div class="loading">Ürünler yüklenemedi: '+esc(error.message)+'</div>';return;}
+  if(!data || data.length===0){box.innerHTML='<div class="loading">Henüz ürün eklenmemiş.</div>';return;}
   box.innerHTML=data.map(p=>`<article class="card"><img class="productImg" src="${esc(p.image_url)}" alt="${esc(p.name)}"><h3>${esc(p.name)}</h3><p>${esc(p.description||'')}</p><div class="price">${Number(p.price).toLocaleString('tr-TR')} TL</div><a class="order" href="https://www.instagram.com/3dbaskicim43/" target="_blank">Sipariş Ver</a></article>`).join('');
 }
 loadProducts();
