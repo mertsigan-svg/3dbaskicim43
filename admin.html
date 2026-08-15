@@ -8,27 +8,92 @@
 </style></head>
 <body><div class="wrap">
 <div class="box"><h1>3D<span>BASKİCİM43</span> Admin</h1><p class="muted">Ürünlerini buradan yönet.</p></div>
-<div id="login" class="box"><h2>🔐 Admin Girişi</h2><label>E-posta</label><input id="email" type="email" autocomplete="username"><label>Şifre</label><input id="password" type="password" autocomplete="current-password"><button id="loginBtn">Giriş Yap</button><div id="loginMsg" class="msg"></div></div>
+<div id="login" class="box"><h2>🔐 Admin Girişi</h2><label>E-posta</label><input id="email" type="email" autocomplete="username"><label>Şifre</label><input id="password" type="password" autocomplete="current-password"><button id="loginBtn">Giriş Yap</button><button id="recoveryBtn" class="secondary">Şifremi Unuttum</button><div id="loginMsg" class="msg"></div></div>
+<div id="recovery" class="box hidden"><h2>🔑 Yeni Şifre Belirle</h2><p class="muted">Şifre sıfırlama bağlantısından geldiysen yeni şifreni burada belirleyebilirsin.</p><label>Yeni şifre</label><input id="newPassword" type="password" autocomplete="new-password"><label>Yeni şifre tekrar</label><input id="newPassword2" type="password" autocomplete="new-password"><button id="savePasswordBtn">Yeni Şifreyi Kaydet</button><div id="recoveryMsg" class="msg"></div></div>
 <div id="panel" class="hidden">
 <div class="box"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2>➕ Ürün Ekle</h2><button class="secondary" id="logoutBtn">Çıkış</button></div>
 <label>Ürün adı</label><input id="name" placeholder="Örn. Dişsiz Anahtarlık"><label>Fiyat (TL)</label><input id="price" type="number" min="0" step="1" placeholder="75"><label>Açıklama</label><textarea id="description" placeholder="Ürün açıklaması"></textarea><label>Fotoğraf</label><input id="photo" type="file" accept="image/*"><img id="preview" class="preview"><button id="addBtn">Siteye Ekle</button><div id="addMsg" class="msg"></div></div>
 <div class="box"><h2>📦 Ürünler</h2><div id="products" class="products"></div></div></div>
 </div>
 <script type="module">
-// Supabase proje bilgileri
 const SUPABASE_URL='https://estbotwgzcadafmwanse.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_xwZ3W4zrMNOvn8wvcZmSpg_rjGVql1J';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const ready=!SUPABASE_URL.startsWith('BURAYA_')&&!SUPABASE_ANON_KEY.startsWith('BURAYA_');
-const sb=ready?createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id);
+const REDIRECT_URL='https://mertsigan-svg.github.io/3dbaskicim43/admin.html';
+
+function showRecovery(){
+  $('login').classList.add('hidden');
+  $('recovery').classList.remove('hidden');
+}
+function showPanel(){
+  $('login').classList.add('hidden');
+  $('recovery').classList.add('hidden');
+  $('panel').classList.remove('hidden');
+  loadProducts();
+}
+
 $('photo').onchange=()=>{const f=$('photo').files[0];if(!f)return;const u=URL.createObjectURL(f);$('preview').src=u;$('preview').style.display='block'};
-$('loginBtn').onclick=async()=>{if(!sb){$('loginMsg').textContent='Önce Supabase bağlantısı eklenmeli.';return}const {error}=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});$('loginMsg').textContent=error?error.message:'';if(!error)showPanel()};
-$('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};
-async function showPanel(){ $('login').classList.add('hidden');$('panel').classList.remove('hidden');loadProducts() }
-async function loadProducts(){if(!sb)return;const {data,error}=await sb.from('products').select('*').order('created_at',{ascending:false});if(error){$('products').innerHTML='<p class="muted">Tablo bağlantısı hazır değil.</p>';return}$('products').innerHTML=(data||[]).map(p=>`<div class="product"><img src="${p.image_url}" alt=""><h3>${escapeHtml(p.name)}</h3><b>${p.price} TL</b><p class="muted">${escapeHtml(p.description||'')}</p><button onclick="removeProduct('${p.id}')">Sil</button></div>`).join('')||'<p class="muted">Henüz ürün yok.</p>'}
-window.removeProduct=async id=>{if(!sb)return;if(!confirm('Bu ürünü silmek istediğine emin misin?'))return;const {error}=await sb.from('products').delete().eq('id',id);if(error)alert(error.message);else loadProducts()};
-$('addBtn').onclick=async()=>{if(!sb){$('addMsg').textContent='Önce Supabase bağlantısı eklenmeli.';return}const f=$('photo').files[0];if(!f){$('addMsg').textContent='Fotoğraf seç.';return}const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=Date.now()+'_'+safe;const up=await sb.storage.from('product-images').upload(path,f,{upsert:false});if(up.error){$('addMsg').textContent=up.error.message;return}const image_url=sb.storage.from('product-images').getPublicUrl(path).data.publicUrl;const ins=await sb.from('products').insert({name:$('name').value,price:Number($('price').value),description:$('description').value,image_url});if(ins.error){$('addMsg').textContent=ins.error.message;return}$('addMsg').textContent='Ürün eklendi!';$('name').value='';$('price').value='';$('description').value='';$('photo').value='';$('preview').style.display='none';loadProducts()};
+
+$('loginBtn').onclick=async()=>{
+  const email=$('email').value.trim(), password=$('password').value;
+  $('loginMsg').textContent='Giriş kontrol ediliyor...';
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error){$('loginMsg').textContent='Giriş başarısız: '+error.message;return}
+  $('loginMsg').textContent='';
+  showPanel();
+};
+
+$('recoveryBtn').onclick=async()=>{
+  const email=$('email').value.trim();
+  if(!email){$('loginMsg').textContent='Önce e-posta adresini yaz.';return}
+  $('loginMsg').textContent='Şifre sıfırlama e-postası gönderiliyor...';
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:REDIRECT_URL});
+  $('loginMsg').textContent=error?'Şifre sıfırlama gönderilemedi: '+error.message:'Şifre sıfırlama bağlantısı e-postana gönderildi.';
+};
+
+$('savePasswordBtn').onclick=async()=>{
+  const p=$('newPassword').value,p2=$('newPassword2').value;
+  if(p.length<6){$('recoveryMsg').textContent='Şifre en az 6 karakter olmalı.';return}
+  if(p!==p2){$('recoveryMsg').textContent='Şifreler aynı değil.';return}
+  $('recoveryMsg').textContent='Şifre kaydediliyor...';
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){$('recoveryMsg').textContent='Şifre değiştirilemedi: '+error.message;return}
+  $('recoveryMsg').textContent='Şifre başarıyla değiştirildi!';
+  setTimeout(()=>showPanel(),700);
+};
+
+$('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.href=REDIRECT_URL};
+
+async function loadProducts(){
+  const {data,error}=await sb.from('products').select('*').order('created_at',{ascending:false});
+  if(error){$('products').innerHTML='<p class="muted">Tablo bağlantısı hazır değil: '+escapeHtml(error.message)+'</p>';return}
+  $('products').innerHTML=(data||[]).map(p=>`<div class="product"><img src="${p.image_url}" alt=""><h3>${escapeHtml(p.name)}</h3><b>${p.price} TL</b><p class="muted">${escapeHtml(p.description||'')}</p><button onclick="removeProduct('${p.id}')">Sil</button></div>`).join('')||'<p class="muted">Henüz ürün yok.</p>';
+}
+
+window.removeProduct=async id=>{if(!confirm('Bu ürünü silmek istediğine emin misin?'))return;const {error}=await sb.from('products').delete().eq('id',id);if(error)alert(error.message);else loadProducts()};
+
+$('addBtn').onclick=async()=>{
+  const f=$('photo').files[0];
+  if(!f){$('addMsg').textContent='Fotoğraf seç.';return}
+  const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,'_'),path=Date.now()+'_'+safe;
+  const up=await sb.storage.from('product-images').upload(path,f,{upsert:false});
+  if(up.error){$('addMsg').textContent=up.error.message;return}
+  const image_url=sb.storage.from('product-images').getPublicUrl(path).data.publicUrl;
+  const ins=await sb.from('products').insert({name:$('name').value,price:Number($('price').value),description:$('description').value,image_url});
+  if(ins.error){$('addMsg').textContent=ins.error.message;return}
+  $('addMsg').textContent='Ürün eklendi!';$('name').value='';$('price').value='';$('description').value='';$('photo').value='';$('preview').style.display='none';loadProducts();
+};
+
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-if(sb){sb.auth.getSession().then(({data})=>{if(data.session)showPanel()})}
+
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==='PASSWORD_RECOVERY') showRecovery();
+  else if(session && event!=='SIGNED_OUT') showPanel();
+});
+
+sb.auth.getSession().then(({data})=>{
+  if(data.session) showPanel();
+});
 </script></body></html>
