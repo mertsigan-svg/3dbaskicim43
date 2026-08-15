@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3DBASKİCİM43 | Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080808;color:#fff;font-family:Arial,sans-serif}.wrap{max-width:900px;margin:auto;padding:28px 18px}.box{background:#111;border:1px solid #292929;border-radius:22px;padding:24px;margin:18px 0;box-shadow:0 20px 60px #0008}h1{margin-top:0}h1 span{color:#9b6cff}.muted{color:#999}label{display:block;margin:14px 0 7px;color:#bbb}input,textarea{width:100%;padding:13px;border-radius:11px;border:1px solid #333;background:#181818;color:#fff;font-size:16px}textarea{min-height:100px;resize:vertical}button{border:0;border-radius:11px;padding:13px 18px;background:#9b6cff;color:#fff;font-weight:800;cursor:pointer;margin-top:15px}button.secondary{background:#222}.hidden{display:none}.msg{margin-top:12px;color:#bda8ff}.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.product{background:#171717;border:1px solid #292929;border-radius:16px;padding:12px}.product img{width:100%;height:160px;object-fit:cover;border-radius:10px}.product button{background:#3a2020;width:100%}.preview{max-width:220px;max-height:180px;margin-top:10px;border-radius:12px;display:none}@media(max-width:600px){.wrap{padding:18px 12px}}
+</style></head>
+<body><div class="wrap">
+<div class="box"><h1>3D<span>BASKİCİM43</span> Admin</h1><p class="muted">Ürünlerini buradan yönet.</p></div>
+<div id="login" class="box"><h2>🔐 Admin Girişi</h2><label>E-posta</label><input id="email" type="email" autocomplete="username"><label>Şifre</label><input id="password" type="password" autocomplete="current-password"><button id="loginBtn">Giriş Yap</button><div id="loginMsg" class="msg"></div></div>
+<div id="panel" class="hidden">
+<div class="box"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h2>➕ Ürün Ekle</h2><button class="secondary" id="logoutBtn">Çıkış</button></div>
+<label>Ürün adı</label><input id="name" placeholder="Örn. Dişsiz Anahtarlık"><label>Fiyat (TL)</label><input id="price" type="number" min="0" step="1" placeholder="75"><label>Açıklama</label><textarea id="description" placeholder="Ürün açıklaması"></textarea><label>Fotoğraf</label><input id="photo" type="file" accept="image/*"><img id="preview" class="preview"><button id="addBtn">Siteye Ekle</button><div id="addMsg" class="msg"></div></div>
+<div class="box"><h2>📦 Ürünler</h2><div id="products" class="products"></div></div></div>
+</div>
+<script type="module">
+// Supabase proje bilgilerini buraya bir kez ekle.
+const SUPABASE_URL='BURAYA_SUPABASE_URL';
+const SUPABASE_ANON_KEY='BURAYA_SUPABASE_ANON_KEY';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const ready=!SUPABASE_URL.startsWith('BURAYA_')&&!SUPABASE_ANON_KEY.startsWith('BURAYA_');
+const sb=ready?createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+const $=id=>document.getElementById(id);
+$('photo').onchange=()=>{const f=$('photo').files[0];if(!f)return;const u=URL.createObjectURL(f);$('preview').src=u;$('preview').style.display='block'};
+$('loginBtn').onclick=async()=>{if(!sb){$('loginMsg').textContent='Önce Supabase bağlantısı eklenmeli.';return}const {error}=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});$('loginMsg').textContent=error?error.message:'';if(!error)showPanel()};
+$('logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};
+async function showPanel(){ $('login').classList.add('hidden');$('panel').classList.remove('hidden');loadProducts() }
+async function loadProducts(){if(!sb)return;const {data,error}=await sb.from('products').select('*').order('created_at',{ascending:false});if(error){$('products').innerHTML='<p class="muted">Tablo bağlantısı hazır değil.</p>';return}$('products').innerHTML=(data||[]).map(p=>`<div class="product"><img src="${p.image_url}" alt=""><h3>${escapeHtml(p.name)}</h3><b>${p.price} TL</b><p class="muted">${escapeHtml(p.description||'')}</p><button onclick="removeProduct('${p.id}')">Sil</button></div>`).join('')||'<p class="muted">Henüz ürün yok.</p>'}
+window.removeProduct=async id=>{if(!sb)return;if(!confirm('Bu ürünü silmek istediğine emin misin?'))return;const {error}=await sb.from('products').delete().eq('id',id);if(error)alert(error.message);else loadProducts()};
+$('addBtn').onclick=async()=>{if(!sb){$('addMsg').textContent='Önce Supabase bağlantısı eklenmeli.';return}const f=$('photo').files[0];if(!f){$('addMsg').textContent='Fotoğraf seç.';return}const safe=f.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path=Date.now()+'_'+safe;const up=await sb.storage.from('product-images').upload(path,f,{upsert:false});if(up.error){$('addMsg').textContent=up.error.message;return}const image_url=sb.storage.from('product-images').getPublicUrl(path).data.publicUrl;const ins=await sb.from('products').insert({name:$('name').value,price:Number($('price').value),description:$('description').value,image_url});if(ins.error){$('addMsg').textContent=ins.error.message;return}$('addMsg').textContent='Ürün eklendi!';$('name').value='';$('price').value='';$('description').value='';$('photo').value='';$('preview').style.display='none';loadProducts()};
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+if(sb){sb.auth.getSession().then(({data})=>{if(data.session)showPanel()})}
+</script></body></html>
